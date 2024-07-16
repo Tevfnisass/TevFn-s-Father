@@ -1,0 +1,187 @@
+-- Load Fluent and necessary services
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+local Players = game:GetService("Players")
+local SocialService = game:GetService("SocialService")
+local StatsService = game:GetService("Stats")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Local references
+local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Event = SocialService:WaitForChild("\n")
+
+-- UI creation
+local Window = Fluent:CreateWindow({
+    Title = "Fluent " .. Fluent.Version,
+    SubTitle = "by dawid",
+    TabWidth = 160,
+    Size = UDim2.new(0, 580, 0, 460),  -- Adjusted to a relative size for mobile support
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+local Options = Fluent.Options
+
+-- Add autoparry toggle to UI
+local AutoParryToggle = Tabs.Settings:AddToggle("AutoParry", { Title = "Auto Parry", Default = false })
+
+-- Function to toggle autoparry script on/off
+local function ToggleAutoParry(enabled)
+    getgenv().AutoParry = enabled
+    if enabled then
+        print("AutoParry enabled")
+        AutoparryFunction()  -- Start autoparry function
+    else
+        print("AutoParry disabled")
+        -- Add logic to stop autoparry if needed
+    end
+end
+
+AutoParryToggle:OnChanged(function(enabled)
+    ToggleAutoParry(enabled)
+end)
+
+-- Function encapsulating your autoparry logic
+local function AutoparryFunction()
+    local Parried = false
+    local Sphere = Instance.new("Part")
+    Sphere.Material = Enum.Material.ForceField
+    Sphere.Anchored = true
+    Sphere.CanCollide = false
+    Sphere.Parent = workspace
+    Sphere.CastShadow = false
+    Sphere.Shape = Enum.PartType.Ball
+
+    task.spawn(function()
+        while getgenv().AutoParry do
+            task.wait()
+
+            local Character = Player.Character
+            if not Character or not Character:FindFirstChild("HumanoidRootPart") then
+                continue
+            end
+
+            local Ball = GetBall()
+            if not Ball then
+                continue
+            end
+
+            local Hrp = Character:FindFirstChild("HumanoidRootPart")
+            local Distance = (Hrp.Position - Ball.Position).Magnitude
+            local Speed = Ball.AssemblyLinearVelocity.Magnitude
+            local Ping = (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+            Distance -= Speed * Ping / 1000
+            
+            local DesiredVelocity = (Hrp.Position - Ball.Position).Unit
+            local ActualVelocity = Ball.AssemblyLinearVelocity.Unit
+            local Difference = (ActualVelocity - DesiredVelocity)
+            local Curve = Difference.Magnitude / 2
+            local Radius = (Speed * 0.5) * (1 + (Curve / 4))
+
+            if Ball:GetAttribute("target") ~= Player.Name then
+                Opponent = Players:FindFirstChild(Ball:GetAttribute("target")) or workspace.Alive:FindFirstChild(Ball:GetAttribute("target"))
+                Opponent = Opponent and Opponent:IsA("Player") and Opponent.Character or Opponent
+            end
+
+            local OpponentDistance = Opponent and Opponent:FindFirstChild("HumanoidRootPart") and (Hrp.Position - Opponent.HumanoidRootPart.Position).Magnitude or 99999
+            
+            local PingCompensator = (Ping / 50)
+            local CalculatedDistanceToParry = 10 + Speed / 3.67 + PingCompensator
+            
+            Sphere.CFrame = Hrp.CFrame
+            Sphere.Size = Vector3.new(Radius, Radius, Radius)
+            
+            if Distance <= CalculatedDistanceToParry and Ball:GetAttribute('target') == game.Players.LocalPlayer.Name and not Parried then
+                    if Curve > 0.5 or Distance > Radius or Parried or Ball:GetAttribute("target") ~= Player.Name then
+                            continue
+                    end
+                    Parried = true
+                    Parry()
+            Ball:GetAttributeChangedSignal('target'):Connect(function()
+                Parried = false
+            end)
+            local LastParry = time()
+            
+            task.spawn(function()
+                repeat
+                    game:GetService('RunService').PreSimulation:Wait()
+                until (time() - LastParry) >= 2 or not Parried
+                Parried = false
+            end)
+            end
+                    
+        end
+    end)
+end
+
+function Parry()
+    local Cf = Camera.CFrame
+    local X, Y, Z, R00, R01, R02, R10, R11, R12, R20, R21, R22 = Cf:GetComponents()
+
+    local Args = {
+        [1] = 0,
+        [2] = CFrame.new(X, Y, Z, R00, R01, R02, R10, R11, R12, R20, R21, R22),
+        [3] = {},
+        [4] = {
+            [1] = Camera.ViewportSize.X / 2,
+            [2] = Camera.ViewportSize.Y / 2
+        },
+        [5] = false
+    }
+
+    Event = Event or SocialService:WaitForChild("\n")
+
+    if Event then
+        Event:FireServer(unpack(Args))
+    end
+end
+
+function GetBall()
+    local RealBall = nil
+
+    for _, Ball in pairs(workspace.Balls:GetChildren()) do
+        if not Ball:GetAttribute("realBall") then
+            continue
+        end
+
+        RealBall = Ball
+        break
+    end
+
+    return RealBall
+end
+
+-- Build UI interface and configure SaveManager
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/specific-game")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+Window:SelectTab(1)
+
+-- Show window (for non-mobile devices)
+Window:Show()
+
+-- Mobile support adjustments
+if guiService:IsTenFootInterface() then
+    Window:Minimize()  -- Minimize for console-like interfaces
+end
+
+Fluent:Notify({
+    Title = "Fluent",
+    Content = "The script has been loaded.",
+    Duration = 8
+})
+
+SaveManager:LoadAutoloadConfig()
