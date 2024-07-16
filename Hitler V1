@@ -1,0 +1,246 @@
+-- Variables
+local player = game.Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+local correctCode = "1234" -- Replace with your correct key code
+local keyVerified = false
+
+-- Key System UI
+local keyGui = Instance.new("ScreenGui")
+keyGui.Name = "KeyGui"
+keyGui.Parent = PlayerGui
+keyGui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 150)
+frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Parent = keyGui
+
+local keyTextBox = Instance.new("TextBox")
+keyTextBox.Size = UDim2.new(0, 280, 0, 50)
+keyTextBox.Position = UDim2.new(0.5, -140, 0.3, -25)
+keyTextBox.PlaceholderText = "Enter Key"
+keyTextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+keyTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyTextBox.Parent = frame
+
+local keyButton = Instance.new("TextButton")
+keyButton.Size = UDim2.new(0, 280, 0, 50)
+keyButton.Position = UDim2.new(0.5, -140, 0.7, -25)
+keyButton.Text = "Submit"
+keyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+keyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyButton.Parent = frame
+
+-- Function to show the main UI
+local function showMainUI()
+    -- Load the UI Library
+    local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/lxte/lates-lib/main/Main.lua", true))()
+    
+    -- Ensure the library has been loaded
+    print("UI Library loaded successfully")
+    
+    -- Create the main window
+    local Window = Library:CreateWindow({
+        Title = "???",
+        Size = UDim2.fromOffset(580, 350),
+        Transparency = 0.1,
+        MinimizeKeybind = Enum.KeyCode.LeftAlt,
+        Blurring = true,
+        Theme = "Dark",
+    })
+    
+    local Themes = {
+        Void = {
+            Primary = Color3.fromRGB(15, 15, 15),
+            Secondary = Color3.fromRGB(20, 20, 20),
+            Component = Color3.fromRGB(25, 25, 25),
+            Interactables = Color3.fromRGB(30, 30, 30),
+            Tab = Color3.fromRGB(200, 200, 200),
+            Title = Color3.fromRGB(240, 240, 240),
+            Description = Color3.fromRGB(200, 200, 200),
+            Shadow = Color3.fromRGB(0, 0, 0),
+            Outline = Color3.fromRGB(40, 40, 40),
+            Icon = Color3.fromRGB(220, 220, 220),
+        }
+    }
+    
+    Window:SetTheme(Themes.Void)
+    
+    -- Main GUI Setup
+    local MainTab = Window:AddTab({
+        Title = "Main",
+        Section = "Main",
+    })
+    
+    Window:AddSection({ Name = "Auto Parry Controls", Tab = MainTab })
+    
+    -- Auto Parry Function
+    local autoParryEnabled = false
+    local isAutoParrying = false
+    local ballIndicator = Instance.new("Part")
+    ballIndicator.Material = Enum.Material.ForceField
+    ballIndicator.Anchored = true
+    ballIndicator.CanCollide = false
+    ballIndicator.Parent = workspace
+    ballIndicator.CastShadow = false
+    ballIndicator.Shape = Enum.PartType.Ball
+    ballIndicator.Color = Color3.fromRGB(255, 0, 0)
+    
+    local function applyDecal(part, decalId)
+        local faces = {"Front", "Back", "Top", "Bottom", "Left", "Right"}
+        for _, face in ipairs(faces) do
+            local decal = Instance.new("Decal")
+            decal.Texture = "rbxassetid://" .. decalId
+            decal.Face = Enum.NormalId[face]
+            decal.Parent = part
+        end
+    end
+    
+    if getgenv().CustomDecal then
+        applyDecal(ballIndicator, getgenv().CustomDecal)
+    end
+    
+    local function fireServerForBall()
+        local cameraFrame = game.Workspace.CurrentCamera.CFrame
+        local x, y, z, R00, R01, R02, R10, R11, R12, R20, R21, R22 = cameraFrame:GetComponents()
+    
+        local data = {
+            [1] = 0,
+            [2] = CFrame.new(x, y, z, R00, R01, R02, R10, R11, R12, R20, R21, R22),
+            [3] = {},
+            [4] = {
+                [1] = game.Workspace.CurrentCamera.ViewportSize.X / 2,
+                [2] = game.Workspace.CurrentCamera.ViewportSize.Y / 2
+            },
+            [5] = false
+        }
+    
+        local socialEvent = game:GetService("SocialService")
+        if socialEvent then
+            local event = socialEvent:FindFirstChild("\n")
+            if event then
+                event:FireServer(unpack(data))
+            end
+        end
+    end
+    
+    local function findClosestBall()
+        for _, ball in pairs(workspace.Balls:GetChildren()) do
+            if ball:GetAttribute("realBall") then
+                return ball
+            end
+        end
+        return nil
+    end
+    
+    local function startAutoParry()
+        autoParryEnabled = true
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Autoparry is on";
+            Text = "";
+            Duration = 5;
+        })
+    
+        while autoParryEnabled do
+            wait()
+    
+            local player = game.Players.LocalPlayer
+            if not player or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+                continue
+            end
+    
+            local closestBall = findClosestBall()
+            if not closestBall then
+                continue
+            end
+    
+            local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+            if not rootPart then
+                continue
+            end
+    
+            local distanceToBall = (rootPart.Position - closestBall.Position).Magnitude
+            local ballVelocity = closestBall.AssemblyLinearVelocity.Magnitude
+            local ballDirection = (rootPart.Position - closestBall.Position).Unit
+            local playerVelocityDirection = player.Character.HumanoidRootPart.AssemblyLinearVelocity.Unit
+            local angleBetweenDirections = (playerVelocityDirection - ballDirection).Magnitude / 2
+            local calculatedDistance = (ballVelocity * 0.5) * (1.25 + (angleBetweenDirections / 4))
+    
+            local c3
+            if closestBall:GetAttribute("target") ~= player.Name then
+                c3 = game.Players:FindFirstChild(closestBall:GetAttribute("target")) or game.Workspace.Alive:FindFirstChild(closestBall:GetAttribute("target"))
+                c3 = c3 and c3:IsA("Player") and c3.Character or c3
+            end
+    
+            local c1 = true
+            if closestBall:GetAttribute("target") == player.Name and not isAutoParrying then
+                c1 = false
+            end
+    
+            local distanceToPlayer = c3 and c3:FindFirstChild("HumanoidRootPart") and (rootPart.Position - c3.HumanoidRootPart.Position).Magnitude or math.huge
+    
+            ballIndicator.CFrame = rootPart.CFrame
+            ballIndicator.Size = Vector3.new(calculatedDistance, calculatedDistance, calculatedDistance)
+    
+            isAutoParrying = closestBall:GetAttribute("target") == player.Name
+    
+            if angleBetweenDirections > 0.525 then
+                continue
+            end
+    
+            if distanceToBall > calculatedDistance then
+                continue
+            end
+    
+            if closestBall:GetAttribute("target") ~= player.Name then
+                continue
+            end
+    
+            if isAutoParrying then
+                continue
+            end
+    
+            isAutoParrying = ballVelocity > 5.5
+            fireServerForBall()
+        end
+    
+        ballIndicator:Destroy()
+    end
+    
+    local function stopAutoParry()
+        autoParryEnabled = false
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Autoparry is off";
+            Text = "";
+            Duration = 5;
+        })
+    end
+    
+    Window:AddButton({
+        Title = "Toggle Auto Parry",
+        Description = "Enable or disable auto parry.",
+        Tab = MainTab,
+        Callback = function()
+            if autoParryEnabled then
+                stopAutoParry()
+            else
+                startAutoParry()
+            end
+        end,
+    })
+
+    -- Show the window
+    Window:Show()
+end
+
+-- Key Button Click Event
+keyButton.MouseButton1Click:Connect(function()
+    if keyTextBox.Text == correctCode then
+        keyVerified = true
+        keyGui:Destroy()
+        showMainUI()
+    else
+        warn("Incorrect key code.")
+    end
+end)
