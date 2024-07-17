@@ -1,0 +1,266 @@
+--BLADEBALL HITLERV1 (WORK IN PROGRESS)
+local StarterGui = game:GetService("StarterGui")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Vim = game:GetService("VirtualInputManager")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Key System UI
+local screenGui = Instance.new("ScreenGui")
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0.4, 0, 0.3, 0)
+frame.Position = UDim2.new(0.3, 0, 0.35, 0)
+frame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+frame.BorderSizePixel = 0
+frame.Style = Enum.FrameStyle.RobloxRound
+
+local titleLabel = Instance.new("TextLabel", frame)
+titleLabel.Size = UDim2.new(1, 0, 0.2, 0)
+titleLabel.Text = "Hitler's Keysystem" --ur key system Title here
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.BackgroundTransparency = 1
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+
+local textBox = Instance.new("TextBox", frame)
+textBox.Size = UDim2.new(1, -20, 0.2, 0)
+textBox.Position = UDim2.new(0, 10, 0.25, 0)
+textBox.BackgroundColor3 = Color3.new(1, 1, 1)
+textBox.TextColor3 = Color3.new(0, 0, 0)
+textBox.TextScaled = true
+textBox.PlaceholderText = "Enter Key here"
+textBox.TextStrokeTransparency = 0.5
+
+local submitButton = Instance.new("TextButton", frame)
+submitButton.Size = UDim2.new(1, -20, 0.25, 0)
+submitButton.Position = UDim2.new(0, 10, 0.55, 0)
+submitButton.Text = "Submit"
+submitButton.BackgroundColor3 = Color3.new(0.1, 0.8, 0.1)
+submitButton.TextColor3 = Color3.new(1, 1, 1)
+submitButton.TextScaled = true
+submitButton.Font = Enum.Font.GothamBold
+submitButton.BorderSizePixel = 0
+
+local creditsLabel = Instance.new("TextLabel", frame)
+creditsLabel.Size = UDim2.new(1, 0, 0.1, 0)
+creditsLabel.Position = UDim2.new(0, 0, 0.85, 0)
+creditsLabel.Text = "Credits to alxpox for the key system"
+creditsLabel.TextColor3 = Color3.new(1, 1, 1)
+creditsLabel.BackgroundTransparency = 1
+creditsLabel.TextScaled = true
+creditsLabel.Font = Enum.Font.Gotham
+
+submitButton.MouseButton1Click:Connect(
+    function()
+        local enteredCode = textBox.Text
+        local correctCode = "Pr34GcbhXftx678VuhN00"
+        -- your key here
+
+        if enteredCode == correctCode then
+            -- Remove the key UI and run the main script
+            screenGui:Destroy()
+            runMainScript()
+        else
+            print("Incorrect key code.")
+        end
+    end
+)
+
+screenGui.Parent = playerGui
+
+-- Main Script Function
+function runMainScript()
+    -- Create or reference the GUI elements
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "Hitler V1"
+    gui.Parent = playerGui -- Parent to PlayerGui
+
+    -- Small box to open the main GUI
+    local smallBox = Instance.new("Frame")
+    smallBox.Size = UDim2.new(0, 50, 0, 50) -- Smaller size
+    smallBox.Position = UDim2.new(0, 10, 0, 10)
+    smallBox.BackgroundColor3 = Color3.new(0, 0, 0)
+    smallBox.Parent = gui
+
+    local openMainGuiButton = Instance.new("TextButton")
+    openMainGuiButton.Size = UDim2.new(1, 0, 1, 0)
+    openMainGuiButton.Text = "Open"
+    openMainGuiButton.TextColor3 = Color3.new(1, 1, 1)
+    openMainGuiButton.BackgroundColor3 = Color3.new(0, 0, 0)
+    openMainGuiButton.Parent = smallBox
+
+    local dragging = false
+    local dragInput, mousePos, framePos
+
+    local function update(input)
+        local delta = input.Position - mousePos
+        smallBox.Position =
+            UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+
+    smallBox.InputBegan:Connect(
+        function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                mousePos = input.Position
+                framePos = smallBox.Position
+
+                input.Changed:Connect(
+                    function()
+                        if input.UserInputState == Enum.UserInputState.End then
+                            dragging = false
+                        end
+                    end
+                )
+            end
+        end
+    )
+
+    smallBox.InputChanged:Connect(
+        function(input)
+            if
+                input.UserInputType == Enum.UserInputType.MouseMovement or
+                    input.UserInputType == Enum.UserInputType.Touch
+             then
+                dragInput = input
+            end
+        end
+    )
+
+    game:GetService("UserInputService").InputChanged:Connect(
+        function(input)
+            if input == dragInput and dragging then
+                update(input)
+            end
+        end
+    )
+
+    -- Main GUI
+    local mainGui = Instance.new("Frame")
+    mainGui.Size = UDim2.new(0, 300, 0, 200)
+    mainGui.Position = UDim2.new(0.5, -150, 0.5, -100)
+    mainGui.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    mainGui.Visible = false
+    mainGui.Parent = gui
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 0, 50)
+    textLabel.Position = UDim2.new(0, 0, 0, 0)
+    textLabel.Text = "Blade Ball Auto Parry Disabled"
+    textLabel.TextColor3 = Color3.new(1, 0, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.Parent = mainGui
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(1, 0, 0, 50)
+    toggleButton.Position = UDim2.new(0, 0, 0, 50)
+    toggleButton.Text = "Toggle Auto Parry"
+    toggleButton.TextColor3 = Color3.new(1, 1, 1)
+    toggleButton.BackgroundColor3 = Color3.new(0, 0, 0)
+    toggleButton.Parent = mainGui
+
+    -- Initial notification
+    textLabel.Text = "Blade Ball Auto Parry Disabled"
+
+    local ballFolder = Workspace:WaitForChild("Balls")
+    local indicatorPart = Instance.new("Part")
+    indicatorPart.Size = Vector3.new(5, 5, 5)
+    indicatorPart.Anchored = true
+    indicatorPart.CanCollide = false
+    indicatorPart.Transparency = 1
+    indicatorPart.BrickColor = BrickColor.new("Bright red")
+    indicatorPart.Parent = Workspace
+
+    local lastBallPressed = nil
+    local isKeyPressed = false
+    local autoParryEnabled = false
+
+    local function calculatePredictionTime(ball, player)
+        local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            local relativePosition = ball.Position - rootPart.Position
+            local velocity = ball.Velocity + rootPart.Velocity
+            local a = (ball.Size.magnitude / 2)
+            local b = relativePosition.magnitude
+            local c = math.sqrt(a * a + b * b)
+            local timeToCollision = (c - a) / velocity.magnitude
+            return timeToCollision
+        end
+        return math.huge
+    end
+
+    local function updateIndicatorPosition(ball)
+        indicatorPart.Position = ball.Position
+    end
+
+    local function checkProximityToPlayer(ball, player)
+        if not autoParryEnabled then
+            return
+        end
+
+        local predictionTime = calculatePredictionTime(ball, player)
+        local realBallAttribute = ball:GetAttribute("realBall")
+        local target = ball:GetAttribute("target")
+
+        local ballSpeedThreshold = math.max(0.4, 0.6 - ball.Velocity.magnitude * 0.01)
+
+        if
+            predictionTime <= ballSpeedThreshold and realBallAttribute == true and target == player.Name and
+                not isKeyPressed
+         then
+            Vim:SendKeyEvent(true, Enum.KeyCode.F, false, nil)
+            wait(0.005)
+            Vim:SendKeyEvent(false, Enum.KeyCode.F, false, nil)
+            lastBallPressed = ball
+            isKeyPressed = true
+            -- Update GUI to indicate successful parry
+            textLabel.Text = "Parried ball from " .. target
+        elseif
+            lastBallPressed == ball and
+                (predictionTime > ballSpeedThreshold or realBallAttribute ~= true or target ~= player.Name)
+         then
+            isKeyPressed = false
+        end
+    end
+
+    local function checkBallsProximity()
+        local player = Players.LocalPlayer
+        if player then
+            for _, ball in pairs(ballFolder:GetChildren()) do
+                checkProximityToPlayer(ball, player)
+                updateIndicatorPosition(ball)
+            end
+        end
+    end
+
+    RunService.Heartbeat:Connect(checkBallsProximity)
+
+    -- Toggle main GUI visibility
+    openMainGuiButton.MouseButton1Click:Connect(
+        function()
+            mainGui.Visible = not mainGui.Visible
+        end
+    )
+
+    -- Toggle button functionality
+    toggleButton.MouseButton1Click:Connect(
+        function()
+            autoParryEnabled = not autoParryEnabled
+            textLabel.Text = autoParryEnabled and "Blade Ball Auto Parry Enabled" or "Blade Ball Auto Parry Disabled"
+            local notificationTitle = autoParryEnabled and "Autoparry is on" or "Autoparry is off"
+            StarterGui:SetCore(
+                "SendNotification",
+                {
+                    Title = notificationTitle,
+                    Text = "",
+                    Duration = 5
+                }
+            )
+        end
+    )
+end
